@@ -1,0 +1,9 @@
+includePaths:
+    -   /home/alex/.local/share/SuperCollider/downloaded-quarks/Vowel
+    -   /home/alex/.local/share/SuperCollider/downloaded-quarks/Dirt-Samples
+    -   /home/alex/.local/share/SuperCollider/downloaded-quarks/SuperDirt
+    -   /home/alex/.local/share/SuperCollider/downloaded-quarks/vstplugin
+excludePaths:
+    []
+postInlineWarnings: false
+excludeDefaultPaths: false

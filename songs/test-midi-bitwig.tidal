@@ -1,0 +1,23 @@
+-- Test MIDI para Bitwig via VirMIDI
+-- Ejecutar DESPUÉS de iniciar SuperDirt
+
+-- Test simple: nota C4 cada beat
+d1 $ s "midi" # midichan 0 # n "c4" # gain 0.8
+
+-- Secuencia de notas
+d1 $ s "midi" # midichan 0 # n "c4 e4 g4 c5" # gain 0.8
+
+-- Con sustain (nota larga)
+d1 $ s "midi" # midichan 0 # n "c4" # sustain 2 # gain 0.8
+
+-- Multiples canales MIDI
+d1 $ s "midi" # midichan 0 # n "c4"
+d2 $ s "midi" # midichan 1 # n "e4"
+
+-- Detener
+hush
+
+-- NOTA: Si no llega MIDI:
+-- 1. En Bitwig: Track > Input debe ser "VirMIDI 3-0"
+-- 2. En SuperCollider ejecuta: ~midiOut.connect(0)
+-- 3. Verifica: MIDIClient.destinations debe mostrar VirMIDI 3-0

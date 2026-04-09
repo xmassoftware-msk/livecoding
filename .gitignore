@@ -1,0 +1,21 @@
+# System files
+.DS_Store
+*.bak
+
+# Backup files
+*.backup
+
+# IDE
+.idea/
+.vscode/
+
+# Temp files
+*.tmp
+*.swp
+*~
+
+# Sessions (empty directory placeholder)
+supercollider/sessions/.gitkeep
+
+# Web engine cache
+webengine-cache/

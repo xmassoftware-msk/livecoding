@@ -1,0 +1,18 @@
+-- Test MIDI desde Tidal a Bitwig
+-- Ejecutar después de iniciar SuperDirt
+
+-- Test simple: nota MIDI cada beat
+d1 $ s "midi" # midichan 0 # n "c4" # gain 0.8
+
+-- Test con melodía
+d1 $ s "midi" # midichan 0 # n "c4 e4 g4 c5" # gain 0.8
+
+-- Test con sustain
+d1 $ s "midi" # midichan 0 # n "c4" # sustain 0.5 # gain 0.8
+
+-- Con differentes canales
+d1 $ s "midi" # midichan 0 # n "c4"
+d2 $ s "midi" # midichan 1 # n "e4"
+
+-- Detener
+hush

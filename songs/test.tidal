@@ -1,0 +1,68 @@
+setcps 0.6
+
+d2
+$ struct ("[t t t@2]*4")
+  $
+    n ("a4") +
+    n (scale  "minor" "<[0,2,4] [-1,2,4] [-1,2,4] [-2,1,3]>") -- Usa la escala mayor directamente
+  # s "midi"
+  # lpf 500
+  # legato 0.5
+  # gain 1
+
+d4
+  $
+    n ("a3") +
+    n (scale  "minor" "<[~ 0 ~ 0]*4>") -- Usa la escala mayor directamente
+  # s "midi"
+  # legato 0.5
+  # cutoff 1200
+  # gain 0.7
+  # midichan 1
+  # orbit 0
+
+d3
+  $
+    n ("a5") +
+    n (scale  "minor" "<[0 2 4]*4 [-1 2 4]*4 [-1 2 4]*4 [-2 1 3]*4>") -- Usa la escala mayor directamente
+  # s "midi"
+  # legato 0.8
+  # cutoff 1000
+  # room "0.3"
+  # gain 1
+  # orbit 0
+  # midichan 1
+
+
+-- Test MIDI para Bitwig via VirMIDI
+-- Ejecutar DESPUÉS de iniciar SuperDirt
+-- Test simple: nota C4 cada beat
+d1 $ s "midi" # midichan 0 # n "c4" # gain 0.8
+-- Secuencia de notas
+
+d1 $ s "midi" # midichan 0 # n "[c4 e4 g4 c5]" # gain 0.8
+-- Con sustain (nota larga)
+
+d1 $ s "midi" # midichan 0 # n "c4" # sustain 2 # gain 0.8
+-- Multiples canales MIDI
+
+d1 $ s "midi" # midichan 0 # n "c4"
+
+d2 $ n "c c c@2 c e g" # s "midi" # midichan 1 #  sustain 0.3
+
+-- Detener
+hush
+
+d1 $ n "0*8" # s "vst" # sustain 0.4 # room 0.6
+
+hush
+
+d2 $ s "bd!4"
+# room 0
+# orbit 0
+
+d1
+$ struct ("[t t t@2]*4")
+  $ n"[c5]"
+  # s "midi"
+  # legato 0.5

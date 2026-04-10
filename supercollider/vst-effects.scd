@@ -32,7 +32,7 @@ if(~dirt.isNil) {
             output = (signal * (1 - room)) + (wetSignal * room);
             
             output = output * EnvGen.kr(Env.asr(0.1, 1, 0.1), gate, doneAction: 2);
-            DirtPause.ar(output.sum, graceTime: 4);
+            DirtPause.ar(output, graceTime: 4);
             Out.ar(effectBus, output);
         }, [\ir, \ir]).add;
     };

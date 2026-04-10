@@ -82,28 +82,12 @@ let getState = streamGet tidal
 :set prompt "tidal> "
 :set prompt-cont ""
 
--- VST Effects parameters
+-- VST Effects parameters (VST Reverb)
 :{
-let reverb = pF "reverb"
-    reverbsize = pF "reverbsize"
-    reverbdamp = pF "reverbdamp"
-    reverbpredelay = pF "reverbpredelay"
-    reverbwidth = pF "reverbwidth"
-    delay2 = pF "delay2"
-    delaytime = pF "delaytime"
-    delayfb = pF "delayfb"
-    delaypingpong = pF "delaypingpong"
-    sidechain = pF "sidechain"
-    scthreshold = pF "scthreshold"
-    scratio = pF "scratio"
-    scattack = pF "scattack"
-    screlease = pF "screlease"
-    clip = pF "clip"
-    clipthresh = pF "clipthresh"
-    clipmakeup = pF "clipmakeup"
-    lpf2 = pF "lpf2"
-    lpfcutoff = pF "lpfcutoff"
-    lpfreso = pF "lpfreso"
+let vstroom = pF "vstroom"
+    vstsize = pF "vstsize"
+    vstpre = pF "vstpre"
+    vstdamp = pF "vstdamp"
 :}
 
 default (Pattern String, Integer, Double)

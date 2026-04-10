@@ -42,7 +42,7 @@ LPF2 (Filter Stereo):
 
 s.waitForBoot {
     
-    VSTPlugin.search(["/usr/lib/vst3", "/usr/local/lib/vst3", "~/.vst3".standardizePath]);
+    VSTPlugin.search(s, ["/usr/lib/vst3", "/usr/local/lib/vst3", "~/.vst3".standardizePath]);
     
     // Bus de control para actualizar parámetros VST
     ~vstUpdateBus = Bus.control(s, 16);

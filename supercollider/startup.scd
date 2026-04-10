@@ -10,7 +10,6 @@ s.waitForBoot {
     // ~dirt.loadSoundFiles;
     ~dirt.loadSoundFiles("/home/alex/Descargas/Samples/dirt_samples/*");
     
-    // Iniciar SuperDirt ANTES de cargar efectos
     MIDIClient.init;
     
     // Puerto virtual que Bitwig detecta
@@ -18,15 +17,17 @@ s.waitForBoot {
     ~midiOut.latency = 0;
 
     // Cargar configuración de mapeo MIDI para Bitwig ANTES de addMIDI
+    // Esto modifica DirtEventTypes.midiEvent antes de que se copie
     load(thisProcess.platform.userConfigDir ++ "/bitwig-midi-mapping.scd");
 
     ~dirt.soundLibrary.addMIDI(\midi, ~midiOut);    
     ~dirt.start(57120, [0, 2, 4, 6, 8, 10, 12, 14]); // Asigna cada 'orbit' a un par de salidas
     
-    // Cargar efectos VST DESPUÉS de que SuperDirt esté inicializado
-    // Esto añade efectos globales con soporte VST
+    // Cargar efectos VST DESPUÉS de SuperDirt
+    // Cargar de forma diferida para asegurar que SuperDirt esté listo
     {
-        0.5.wait; // Esperar un poco para que SuperDirt termine de inicializar
+        1.wait; // Esperar 1 segundo
+        "Cargando efectos VST...".postln;
         load(thisProcess.platform.userConfigDir ++ "/vst-effects.scd");
     }.fork;
 };

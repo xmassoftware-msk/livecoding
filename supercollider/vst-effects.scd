@@ -1,32 +1,30 @@
 (
 /*
-VST Reverb como efecto global de SuperDirt
-==========================================
+VST Reverb Global - Versión Simple
+===================================
 
-Procesa TODO el output de SuperDirt a través del VST.
-Más simple que integrarlo en cada orbit.
+Procesa el output de SuperDirt conectándose al bus master.
+Simplificado para evitar errores.
 */
 
 if(~dirt.isNil) {
     "[ERROR] SuperDirt no está inicializado".postln;
 } {
     var numChannels = ~dirt.numChannels ? 2;
-    var bus, synth, controller;
+    var vstReverb, vstController;
     
     // Buscar plugins VST
     VSTPlugin.search(s, ["/usr/lib/vst3", "/usr/local/lib/vst3", "~/.vst3".standardizePath]);
     
-    // Crear bus de audio
-    bus = Bus.audio(s, numChannels);
+    // ========================================
+    // SynthDef para reverb VST
+    // ========================================
     
-    // SynthDef para procesar audio del bus
-    SynthDef(\vst_reverb_global, { |inBus, outBus = 0, mix = 0.5|
+    SynthDef(\vstReverbGlobal, { |inBus = 0, outBus = 0, mix = 0.3|
         var input, wet, output;
         
         input = In.ar(inBus, numChannels);
-        wet = VSTPlugin.ar(input, numChannels, id: \reverb);
-        
-        // Wet/dry mix
+        wet = VSTPlugin.ar(input, numChannels);
         output = (input * (1 - mix)) + (wet * mix);
         
         Out.ar(outBus, output);
@@ -34,77 +32,77 @@ if(~dirt.isNil) {
     
     s.sync;
     
-    // Crear synth al final de la cadena
-    synth = Synth.tail(s, \vst_reverb_global, [\inBus, bus, \outBus, 0, \mix, 0.3]);
+    // ========================================
+    // Crear bus y synth
+    // ========================================
     
-    // Crear controller para el VST
-    controller = VSTPluginController(synth, id: \reverb);
-    controller.open('Room Builder Stereo');
+    ~vstReverbBus = Bus.audio(s, numChannels);
     
-    // Guardar referencias globales
-    ~vstReverb = ();
-    ~vstReverb[\bus] = bus;
-    ~vstReverb[\synth] = synth;
-    ~vstReverb[\controller] = controller;
+    // El synth se crea al FINAL de todo
+    ~vstReverbSynth = Synth.tail(s, \vstReverbGlobal, [
+        \inBus, ~vstReverbBus,
+        \outBus, 0,  // Output principal
+        \mix, 0.3
+    ]);
     
-    // Función para conectar SuperDirt al bus del VST
-    ~connectVSTReverb = {
-        // Redirigir output de SuperDirt al bus del VST
-        ~dirt.orbits.do { |orbit|
-            orbit.defaultOutputBus.notNil.if({
-                // Guardar bus original
-                if(~originalOutputBus.isNil) {
-                    ~originalOutputBus = ~dirt.orbits[0].defaultOutputBus;
-                };
-                // Cambiar a bus del VST
-                orbit.defaultOutputBus = bus;
-            });
-        };
-        "SuperDirt conectado al VST Reverb".postln;
-    };
+    // Controller para el VST
+    ~vstReverbController = VSTPluginController(~vstReverbSynth);
+    ~vstReverbController.open('Room Builder Stereo');
     
-    // Función para desconectar
-    ~disconnectVSTReverb = {
-        if(~originalOutputBus.notNil) {
-            ~dirt.orbits.do { |orbit|
-                orbit.defaultOutputBus = ~originalOutputBus;
-            };
-            "VST Reverb desconectado".postln;
-        };
-    };
+    // ========================================
+    // Funciones de control
+    // ========================================
     
-    // Función para setear wet/dry mix (0-1)
     ~setVSTReverbMix = { |mix|
-        ~vstReverb[\synth].set(\mix, mix);
-        "VST Reverb mix: %".format(mix).postln;
+        ~vstReverbSynth.set(\mix, mix);
+        "VST mix: %".format(mix).postln;
     };
     
-    // Función para abrir editor
     ~openVSTReverbEditor = {
-        if(~vstReverb[\controller].notNil) {
-            ~vstReverb[\controller].editor;
+        if(~vstReverbController.notNil) {
+            ~vstReverbController.editor;
         };
     };
     
-    // Función para listar parámetros
     ~listVSTReverbParams = {
-        if(~vstReverb[\controller].notNil) {
-            postln("\n=== Room Builder Stereo ===");
-            for(0, ~vstReverb[\controller].numParameters - 1) { |i|
+        if(~vstReverbController.notNil) {
+            postln("\n=== Room Builder Stereo - Parámetros ===");
+            for(0, ~vstReverbController.numParameters - 1) { |i|
                 postln("[%] % = %".format(
                     i,
-                    ~vstReverb[\controller].getParameterName(i) ?? "?",
-                    ~vstReverb[\controller].getParameter(i)
+                    ~vstReverbController.getParameterName(i) ?? "?",
+                    ~vstReverbController.getParameter(i)
                 ));
             };
         };
     };
     
-    // Función para setear parámetro
     ~setVSTReverbParam = { |index, value|
-        if(~vstReverb[\controller].notNil) {
-            ~vstReverb[\controller].set(index, value);
-            "VST Reverb parámetro % = %".format(index, value).postln;
+        if(~vstReverbController.notNil) {
+            ~vstReverbController.set(index, value);
+        };
+    };
+    
+    // ========================================
+    // Conectar/Desconectar de SuperDirt
+    // ========================================
+    
+    ~connectVSTReverb = {
+        // Guardar configuración original
+        ~originalOutBuses = ~dirt.orbits.collect { |orbit| orbit.outBus };
+        
+        // Redirigir todos los orbits al bus del VST
+        ~dirt.orbits.do { |orbit| orbit.outBus = ~vstReverbBus.index; };
+        
+        "VST Reverb conectado - enviando SuperDirt audio al VST".postln;
+    };
+    
+    ~disconnectVSTReverb = {
+        if(~originalOutBuses.notNil) {
+            // Restaurar buses originales
+            ~dirt.orbits.do { |orbit, i| orbit.outBus = ~originalOutBuses[i]; };
+            ~originalOutBuses = nil;
+            "VST Reverb desconectado".postln;
         };
     };
     
@@ -112,17 +110,12 @@ if(~dirt.isNil) {
     postln("VST Reverb Global instalado");
     postln("========================================");
     postln("");
-    postln("CONFIGURACIÓN:");
-    postln("  ~connectVSTReverb.()    -- Conectar SuperDirt al VST");
-    postln("  ~disconnectVSTReverb.() -- Desconectar");
-    postln("");
-    postln("CONTROL:");
-    postln("  ~setVSTReverbMix.(0.5)   -- Wet/dry (0-1)");
-    postln("  ~setVSTReverbParam.(0, 0.7) -- Parámetro por índice");
-    postln("  ~openVSTReverbEditor.()  -- Abrir GUI");
-    postln("  ~listVSTReverbParams.()  -- Ver parámetros");
-    postln("");
-    postln("ESTADO ACTUAL: Desconectado");
-    postln("Ejecuta ~connectVSTReverb.() para activar");
+    postln("FUNCIONES:");
+    postln("  ~connectVSTReverb.()    -- Activar");
+    postln("  ~disconnectVSTReverb.() -- Desactivar");
+    postln("  ~setVSTReverbMix.(0.5)  -- Wet/dry (0-1)");
+    postln("  ~openVSTReverbEditor.()  -- GUI");
+    postln("  ~listVSTReverbParams.() -- Parámetros");
+    postln("  ~setVSTReverbParam.(0, 0.7) -- Setear parámetro");
 }
 )

@@ -20,12 +20,5 @@ s.waitForBoot {
     load(thisProcess.platform.userConfigDir ++ "/bitwig-midi-mapping.scd");
 
     ~dirt.soundLibrary.addMIDI(\midi, ~midiOut);    
-    ~dirt.start(57120, [0, 2, 4, 6, 8, 10, 12, 14]); // Asigna cada 'orbit' a un par de salidas
-    
-    // Cargar efectos VST después de que SuperDirt esté listo
-    {
-        1.wait;
-        "Cargando efectos VST...".postln;
-        load(thisProcess.platform.userConfigDir ++ "/vst-effects.scd");
-    }.fork;
+    ~dirt.start(57120, [0, 2, 4, 6, 8, 10, 12, 14]); // Asigna cada 'orbit' a un par de salidas            
 };

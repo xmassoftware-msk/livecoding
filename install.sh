@@ -65,6 +65,12 @@ for song in "$REPO_DIR/songs"/*.tidal; do
     fi
 done
 
+# Copy BootTidal.hs to project root (Pulsar looks for it there)
+if [ -f "$REPO_DIR/tidal/BootTidal.hs" ]; then
+    cp "$REPO_DIR/tidal/BootTidal.hs" "$REPO_DIR/BootTidal.hs"
+    echo "Copied BootTidal.hs to project root (for Pulsar)"
+fi
+
 # VST Plugins
 echo ""
 echo "--- VST Plugins ---"

@@ -27,8 +27,6 @@ $ n "0 0 [0 0] 0 [0 0] 0 [0 0] 0"
 d5 $ n "0*16"
 # up "[0 3 7 3]*4" + up "24"
 # s "synth:16"
-# reverb 1
-# reverbsize 0.7
 # gain 0.8
 # orbit 0
 

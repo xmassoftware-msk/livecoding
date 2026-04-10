@@ -1,160 +1,128 @@
 (
 /*
-VST Effect para SuperDirt - Versión Simple
-===========================================
+VST Reverb como efecto global de SuperDirt
+==========================================
 
-Este es un enfoque simplificado que usa SynthDef distintos para cada
-número de canales, como lo hace SuperDirt internamente.
-
-Creamos un SYNTH (no un GlobalDirtEffect) que se puede usar como
-instrumento en Tidal: d1 $ s "vstreverb" ...
+Procesa TODO el output de SuperDirt a través del VST.
+Más simple que integrarlo en cada orbit.
 */
 
-// Esperar a que todo esté listo
-s.waitForBoot {
+if(~dirt.isNil) {
+    "[ERROR] SuperDirt no está inicializado".postln;
+} {
+    var numChannels = ~dirt.numChannels ? 2;
+    var bus, synth, controller;
     
     // Buscar plugins VST
     VSTPlugin.search(s, ["/usr/lib/vst3", "/usr/local/lib/vst3", "~/.vst3".standardizePath]);
     
-    // ========================================
-    // SynthDefs para el efecto VST
-    // Registramos para mono y estéreo
-    // ========================================
+    // Crear bus de audio
+    bus = Bus.audio(s, numChannels);
     
-    // Mono
-    SynthDef(\vstreverb1, { |out = 0, vstroom = 0.5, vstsize = 0.5|
-        var signal;
-        signal = In.ar(out, 1);
-        signal = VSTPlugin.ar(signal, 1, id: \reverb);
-        signal = signal * vstroom + (In.ar(out, 1) * (1 - vstroom));
-        ReplaceOut.ar(out, signal);
-    }).add;
-    
-    // Estéreo
-    SynthDef(\vstreverb2, { |out = 0, vstroom = 0.5, vstsize = 0.5|
-        var signal;
-        signal = In.ar(out, 2);
-        signal = VSTPlugin.ar(signal, 2, id: \reverb);
-        signal = signal * vstroom + (In.ar(out, 2) * (1 - vstroom));
-        ReplaceOut.ar(out, signal);
+    // SynthDef para procesar audio del bus
+    SynthDef(\vst_reverb_global, { |inBus, outBus = 0, mix = 0.5|
+        var input, wet, output;
+        
+        input = In.ar(inBus, numChannels);
+        wet = VSTPlugin.ar(input, numChannels, id: \reverb);
+        
+        // Wet/dry mix
+        output = (input * (1 - mix)) + (wet * mix);
+        
+        Out.ar(outBus, output);
     }).add;
     
     s.sync;
     
-    postln("\n[VST Reverb SynthDefs registrados]");
-    postln("==================================");
-    postln("Synths: \\vstreverb1 (mono), \\vstreverb2 (estéreo)");
-    postln("");
-    postln("Controladores:");
-    postln("  ~vstReverb1 - controller para mono");
-    postln("  ~vstReverb2 - controller para estéreo");
-    postln("");
-    postln("Ejemplo de uso:");
-    postln("  { Out.ar(0, VSTPlugin.ar(WhiteNoise.ar(0.1)!2, 2, id: \\reverb)) }.play");
-    postln("  ~vstReverb2.set(0, 0.7) // parámetro 0 = 0.7");
+    // Crear synth al final de la cadena
+    synth = Synth.tail(s, \vst_reverb_global, [\inBus, bus, \outBus, 0, \mix, 0.3]);
     
-    // ========================================
-    // Función para crear un effecto VST en un bus
-    // ========================================
+    // Crear controller para el VST
+    controller = VSTPluginController(synth, id: \reverb);
+    controller.open('Room Builder Stereo');
     
-    ~createVSTReverb = { |numChannels = 2|
-        var synth, controller, bus;
-        var synthName = "vstreverb" ++ numChannels;
-        
-        // Crear bus privado para el efecto
-        bus = Bus.audio(s, numChannels);
-        
-        // Crear synth del efecto
-        synth = Synth(synthName, [\out, bus], s, \addToTail);
-        
-        // Crear controller
-        controller = VSTPluginController(synth, id: \reverb);
-        controller.open('Room Builder Stereo');
-        
-        // Devolver todo
-        (
-            synth: synth,
-            controller: controller,
-            bus: bus
-        )
+    // Guardar referencias globales
+    ~vstReverb = ();
+    ~vstReverb[\bus] = bus;
+    ~vstReverb[\synth] = synth;
+    ~vstReverb[\controller] = controller;
+    
+    // Función para conectar SuperDirt al bus del VST
+    ~connectVSTReverb = {
+        // Redirigir output de SuperDirt al bus del VST
+        ~dirt.orbits.do { |orbit|
+            orbit.defaultOutputBus.notNil.if({
+                // Guardar bus original
+                if(~originalOutputBus.isNil) {
+                    ~originalOutputBus = ~dirt.orbits[0].defaultOutputBus;
+                };
+                // Cambiar a bus del VST
+                orbit.defaultOutputBus = bus;
+            });
+        };
+        "SuperDirt conectado al VST Reverb".postln;
     };
     
-    // Crear effectos VST para uso general
-    ~vstReverbMono = ~createVSTReverb.(1);
-    ~vstReverbStereo = ~createVSTReverb.(2);
+    // Función para desconectar
+    ~disconnectVSTReverb = {
+        if(~originalOutputBus.notNil) {
+            ~dirt.orbits.do { |orbit|
+                orbit.defaultOutputBus = ~originalOutputBus;
+            };
+            "VST Reverb desconectado".postln;
+        };
+    };
     
-    // Abrir editor
+    // Función para setear wet/dry mix (0-1)
+    ~setVSTReverbMix = { |mix|
+        ~vstReverb[\synth].set(\mix, mix);
+        "VST Reverb mix: %".format(mix).postln;
+    };
+    
+    // Función para abrir editor
     ~openVSTReverbEditor = {
-        if(~vstReverbStereo.notNil) {
-            ~vstReverbStereo[\controller].editor;
-        } {
-            "VST no inicializado".postln;
+        if(~vstReverb[\controller].notNil) {
+            ~vstReverb[\controller].editor;
         };
     };
     
-    // Setear parámetros
-    ~setVSTReverb = { |index, value|
-        if(~vstReverbStereo.notNil) {
-            ~vstReverbStereo[\controller].set(index, value);
-        };
-    };
-    
-    // Listar parámetros
+    // Función para listar parámetros
     ~listVSTReverbParams = {
-        if(~vstReverbStereo.notNil) {
-            postln("\n=== Room Builder Stereo - Parámetros ===");
-            for(0, ~vstReverbStereo[\controller].numParameters - 1) { |i|
+        if(~vstReverb[\controller].notNil) {
+            postln("\n=== Room Builder Stereo ===");
+            for(0, ~vstReverb[\controller].numParameters - 1) { |i|
                 postln("[%] % = %".format(
                     i,
-                    ~vstReverbStereo[\controller].getParameterName(i) ?? "?",
-                    ~vstReverbStereo[\controller].getParameter(i)
+                    ~vstReverb[\controller].getParameterName(i) ?? "?",
+                    ~vstReverb[\controller].getParameter(i)
                 ));
             };
-        } {
-            "VST no inicializado".postln;
         };
     };
     
-    postln("\n[VST Reverb listo para usar]");
-    postln("Para abrir el editor: ~openVSTReverbEditor.()");
-};
+    // Función para setear parámetro
+    ~setVSTReverbParam = { |index, value|
+        if(~vstReverb[\controller].notNil) {
+            ~vstReverb[\controller].set(index, value);
+            "VST Reverb parámetro % = %".format(index, value).postln;
+        };
+    };
+    
+    postln("\n========================================");
+    postln("VST Reverb Global instalado");
+    postln("========================================");
+    postln("");
+    postln("CONFIGURACIÓN:");
+    postln("  ~connectVSTReverb.()    -- Conectar SuperDirt al VST");
+    postln("  ~disconnectVSTReverb.() -- Desconectar");
+    postln("");
+    postln("CONTROL:");
+    postln("  ~setVSTReverbMix.(0.5)   -- Wet/dry (0-1)");
+    postln("  ~setVSTReverbParam.(0, 0.7) -- Parámetro por índice");
+    postln("  ~openVSTReverbEditor.()  -- Abrir GUI");
+    postln("  ~listVSTReverbParams.()  -- Ver parámetros");
+    postln("");
+    postln("ESTADO ACTUAL: Desconectado");
+    postln("Ejecuta ~connectVSTReverb.() para activar");
+}
 )
-
-/*
-NOTAS DE USO:
-=============
-
-Este es un enfoque MÁS SIMPLE que intentar crear GlobalDirtEffects.
-Los VSTs aquí son synths independientes que puedes usar de varias formas:
-
-1. PARA PROCESAR AUDIO DE SUPERDIRT:
-   - Necesitarías redirigir el output de los orbits a un bus
-   - Y luego procesar ese bus con el VST
-   
-2. COMO EFECTO MANUAL:
-   - Bus bus = Bus.audio(s, 2);
-   - Synth(\vstreverb2, [\out, bus]);
-   - Y luego enviar audio a ese bus
-
-3. PARA USO CON TIDAL:
-   - Podrías crear un synth que encapsule sample + VST
-   - O procesar el output de SuperDirt globalmente
-
-PROBLEMAS CON EL ENFOQUE ANTERIOR:
-===================================
-
-- GlobalDirtEffect requiere nombres específicos de SynthDef
-- SuperDirt añade el número de canales al nombre
-- Si el efecto no está registrado para TODOS los canales, falla
-- Los parámetros con nombres existentes (room) colisionan
-
-PROXIMOS PASOS:
-===============
-
-Para integrar con SuperDirt como efecto global, necesitaríamos:
-1. Entender exactamente cómo SuperDirt crea sus efectos globales
-2. Usar los nombres de SynthDef correctos (dirt_reverb1, dirt_reverb2, etc.)
-3. Registrar para todos los canales configurados
-
-¿Quieres que intente otro enfoque?
-*/

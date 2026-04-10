@@ -82,12 +82,4 @@ let getState = streamGet tidal
 :set prompt "tidal> "
 :set prompt-cont ""
 
--- VST Effects parameters (VST Reverb)
-:{
-let vstroom = pF "vstroom"
-    vstsize = pF "vstsize"
-    vstpre = pF "vstpre"
-    vstdamp = pF "vstdamp"
-:}
-
 default (Pattern String, Integer, Double)

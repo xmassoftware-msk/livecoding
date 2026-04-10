@@ -1,7 +1,4 @@
-(
-/*
-Diagnosticar VST Reverb
-*/
+// Diagnosticar VST Reverb
 
 postln("\n========================================");
 postln("DIAGNÓSTICO VST REVERB");
@@ -36,7 +33,7 @@ postln("   ~vstReverbController: %".format(~vstReverbController));
 if(~vstReverbSynth.notNil) {
     postln("   Synth isPlaying: %".format(~vstReverbSynth.isPlaying));
     postln("   Synth defName: %".format(~vstReverbSynth.defName));
-});
+};
 
 if(~vstReverbController.notNil) {
     postln("   VST loaded: %".format(~vstReverbController.loaded));
@@ -66,4 +63,3 @@ postln("   Si NO suena el VST:");
 postln("   ~connectVSTReverb.()");
 
 postln("\n========================================");
-)

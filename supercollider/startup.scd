@@ -5,9 +5,19 @@ s.options.numOutputBusChannels = 16;
 s.options.numInputBusChannels = 2;
 s.options.memSize = 8192 * 64;
 
+// Buscar plugins VST en directorios estándar y del proyecto
+VSTPlugin.search(s, ["/usr/lib/vst3", "/usr/local/lib/vst3", "~/.vst3".standardizePath]);
+
 s.waitForBoot {    
     ~dirt = SuperDirt(2, s);
-    ~dirt.loadSoundFiles;        
+    // ~dirt.loadSoundFiles;
+    ~dirt.loadSoundFiles("/home/alex/Descargas/Samples/dirt_samples/*");
+    
+    // Cargar efectos VST para Room y Delay (DESPUÉS de SuperDirt)
+    load(thisProcess.platform.userConfigDir ++ "/vst-effects.scd");
+    
+    // Cargar helper para listar y controlar parámetros VST
+    load(thisProcess.platform.userConfigDir ++ "/vst-params-helper.scd");
     
     MIDIClient.init;
     

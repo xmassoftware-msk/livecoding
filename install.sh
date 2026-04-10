@@ -3,9 +3,13 @@
 # LiveCoding Config Installer
 # Creates symlinks from repo files to their system locations
 
-REPO_DIR="$HOME/liveCoding"
+# Get the absolute path of this script
+SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
+# Get repo directory (directory where this script is located)
+REPO_DIR="$(dirname "$SCRIPT_PATH")"
 
 echo "=== LiveCoding Config Installer ==="
+echo "Repository: $REPO_DIR"
 echo ""
 
 # Function to create symlink with backup
@@ -34,6 +38,8 @@ SUPERCOLLIDER_DIR="$HOME/.config/SuperCollider"
 
 create_link "$REPO_DIR/supercollider/startup.scd" "$SUPERCOLLIDER_DIR/startup.scd"
 create_link "$REPO_DIR/supercollider/bitwig-midi-mapping.scd" "$SUPERCOLLIDER_DIR/bitwig-midi-mapping.scd"
+create_link "$REPO_DIR/supercollider/vst-effects.scd" "$SUPERCOLLIDER_DIR/vst-effects.scd"
+create_link "$REPO_DIR/supercollider/vst-params-helper.scd" "$SUPERCOLLIDER_DIR/vst-params-helper.scd"
 create_link "$REPO_DIR/supercollider/sc_ide_conf.yaml" "$SUPERCOLLIDER_DIR/sc_ide_conf.yaml"
 create_link "$REPO_DIR/supercollider/sclang_conf.yaml" "$SUPERCOLLIDER_DIR/sclang_conf.yaml"
 
@@ -59,16 +65,33 @@ for song in "$REPO_DIR/songs"/*.tidal; do
     fi
 done
 
+# VST Plugins
+echo ""
+echo "--- VST Plugins ---"
+VST_DIR="$HOME/.vst3"
+
+if [ -d "$REPO_DIR/supercollider/vst-plugins" ]; then
+    mkdir -p "$VST_DIR"
+    
+    for plugin in "$REPO_DIR/supercollider/vst-plugins"/*.vst3; do
+        if [ -d "$plugin" ]; then
+            pluginname=$(basename "$plugin")
+            create_link "$plugin" "$VST_DIR/$pluginname"
+        fi
+    done
+else
+    echo "VST plugins directory not found in repo"
+fi
+
 echo ""
 echo "=== Installation Complete ==="
 echo ""
 echo "Symlinks created. Original files backed up with .bak extension."
 echo ""
-echo "Git repository structure:"
-echo "  $REPO_DIR/"
+echo "Repository: $REPO_DIR"
 echo ""
-echo "To initialize git repository:"
-echo "  cd $REPO_DIR"
-echo "  git init"
-echo "  git add ."
-echo "  git commit -m 'Initial commit'"
+echo "NEXT STEPS:"
+echo "1. Restart SuperCollider to load VST plugins"
+echo "2. VSTPlugin.search will run automatically on startup"
+echo "3. Verify plugins loaded:"
+echo "   VSTPlugin.pluginList.printAll"
